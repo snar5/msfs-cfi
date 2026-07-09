@@ -37,6 +37,7 @@ def enabled_groups(groups_cfg: GroupsConfig) -> set[str]:
 
 
 PayloadCallback = Callable[[dict], Awaitable[None]]
+WaitingCallback = Callable[[str, int], Awaitable[None]]
 
 
 class Poller:
@@ -49,20 +50,28 @@ class Poller:
         self._polled_vars = [v for v in self._active_vars if not v.poll_once]
         self._poll_once_cache: dict[str, dict[str, object]] = {}
 
-    async def run(self, on_payload: PayloadCallback) -> None:
+    async def run(self, on_payload: PayloadCallback, on_waiting: WaitingCallback | None = None) -> None:
         interval_s = self._config.polling.interval_ms / 1000
+        ever_connected = False
+        attempt = 0
         while True:
             try:
                 self._source.connect()
             except ConnectionUnavailable as exc:
-                logger.warning(
-                    "SimConnect not available (%s); is MSFS running? Retrying in %.0fs...",
-                    exc, RECONNECT_DELAY_S,
+                attempt += 1
+                message = (
+                    "Reconnecting to SimConnect..." if ever_connected
+                    else "Waiting for MSFS to start (SimConnect not available yet)..."
                 )
+                logger.warning("%s (%s) Retrying in %.0fs [attempt %d]", message, exc, RECONNECT_DELAY_S, attempt)
+                if on_waiting is not None:
+                    await on_waiting(message, attempt)
                 await asyncio.sleep(RECONNECT_DELAY_S)
                 continue
 
             logger.info("Connected. Starting poll loop at %dms interval.", self._config.polling.interval_ms)
+            ever_connected = True
+            attempt = 0
             self._poll_once_cache.clear()
             sequence = 0
             try:

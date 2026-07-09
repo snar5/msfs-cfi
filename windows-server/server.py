@@ -13,7 +13,7 @@ from pathlib import Path
 
 from broadcaster import Broadcaster
 from config import ConfigError, load_config
-from debug_console import render_table
+from debug_console import render_table, render_waiting
 from mock_source import MockSource
 from poller import Poller
 from simconnect_source import SimConnectSource
@@ -62,6 +62,10 @@ async def main() -> None:
             live.update(render_table(payload, VARIABLES))
         await broadcaster.broadcast(payload)
 
+    async def on_waiting(message: str, attempt: int) -> None:
+        if live is not None:
+            live.update(render_waiting(message, attempt))
+
     mode = "MOCK" if args.mock else "SimConnect"
     logging.info(
         "Starting server (%s mode) on %s:%d", mode, config.server.bind_address, config.server.port,
@@ -70,9 +74,9 @@ async def main() -> None:
     async with broadcaster.serve(config.server.bind_address, config.server.port):
         if live is not None:
             with live:
-                await poller.run(on_payload)
+                await poller.run(on_payload, on_waiting=on_waiting)
         else:
-            await poller.run(on_payload)
+            await poller.run(on_payload, on_waiting=on_waiting)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ already-fetched value that also goes out over the wire.
 
 from typing import Callable
 
+from rich.panel import Panel
 from rich.table import Table
 
 from variables import SimVar
@@ -52,3 +53,13 @@ def render_table(payload: dict, variables: list[SimVar]) -> Table:
 
     table.caption = f"sequence={payload.get('sequence')} timestamp={payload.get('timestamp')}"
     return table
+
+
+def render_waiting(message: str, attempt: int) -> Panel:
+    body = (
+        f"{message}\n\n"
+        "Make sure Microsoft Flight Simulator is running with a flight "
+        "loaded, then this will connect automatically.\n"
+        f"Retry attempt {attempt} (every 5s)..."
+    )
+    return Panel(body, title="MSFS-CFI Windows Server", border_style="yellow")
