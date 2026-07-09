@@ -1,0 +1,6 @@
+# Loose minimum pins for now (pre-Windows-verification, greenfield stage).
+# Switch to exact `pip freeze` pins once this has been run and validated
+# against real MSFS on the Windows machine.
+SimConnect>=0.4.26
+websockets>=13.0
+rich>=13.7

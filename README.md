@@ -97,10 +97,30 @@ isn't reusable here. The client/server-over-LAN pattern itself is proven,
 though; this project rebuilds the server with a generic, aircraft-agnostic
 variable set instead.
 
+## Running the Windows server
+
+Code lives in `windows-server/`. Install deps and run:
+
+```
+cd windows-server
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/python server.py --mock              # fake data, runs on any OS
+.venv/bin/python server.py                     # real SimConnect, Windows + MSFS only
+```
+
+`--mock` generates plausible drifting values for every SimVar without
+touching SimConnect at all — use it to develop/verify the config loading,
+JSON payload, WebSocket broadcast, and debug table on a non-Windows machine
+before syncing to the Windows PC for a real test. `--mock-seed N` makes a
+mock run reproducible. The debug console table (toggle via `config.toml`'s
+`[debug] enabled`) shows each SimVar's raw vs. formatted-for-display value
+side by side, refreshed every polling cycle.
+
 ## Next steps
 
-1. Build the Windows server: SimConnect polling loop, config loading,
-   JSON-over-WebSocket output, debug console table.
+1. ~~Build the Windows server: SimConnect polling loop, config loading,
+   JSON-over-WebSocket output, debug console table.~~ Done — see
+   `windows-server/`. Still needs a real-MSFS verification pass on Windows.
 2. Build the Mac/Linux instructor engine: SimBrief ingestion, phase
    detection, frequency/altitude/vector checks, caption generation.
 3. Build the Tauri client: connects to the engine, displays captions and
