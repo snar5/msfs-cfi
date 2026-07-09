@@ -23,11 +23,29 @@ class SimConnectSource:
             ) from exc
 
         try:
-            self._sc = SimConnect()
-            # _time=0: no internal value caching — our own poller controls cadence.
-            self._aq = AircraftRequests(self._sc, _time=0)
+            sc = SimConnect()
         except Exception as exc:
             raise ConnectionUnavailable(str(exc)) from exc
+
+        # python-SimConnect can return a "successful" SimConnect() with no
+        # exception even when MSFS isn't running: SimConnect_Open can fail
+        # without raising OSError, in which case the library silently skips
+        # setting up self.timerThread/self.ok instead of erroring. Trusting
+        # a clean return here would let a broken half-initialized object
+        # through — and its own exit() unconditionally does
+        # self.timerThread.join(), so closing it later raises a raw
+        # AttributeError instead of a clean reconnect. Verify explicitly.
+        if not getattr(sc, "ok", False) or not hasattr(sc, "timerThread"):
+            raise ConnectionUnavailable(
+                "SimConnect did not report a successful connection (is MSFS running?)"
+            )
+
+        try:
+            # _time=0: no internal value caching — our own poller controls cadence.
+            self._aq = AircraftRequests(sc, _time=0)
+        except Exception as exc:
+            raise ConnectionUnavailable(str(exc)) from exc
+        self._sc = sc
 
     def get(self, var: SimVar) -> object:
         if self._aq is None:
@@ -43,7 +61,11 @@ class SimConnectSource:
         return value
 
     def close(self) -> None:
-        if self._sc is not None:
+        # Guard hasattr(self._sc, "timerThread") too: the library's own exit()
+        # does self.timerThread.join() with no existence check, so a partially
+        # connected object (see connect() above) would otherwise raise the
+        # same upstream AttributeError on close instead of a clean reconnect.
+        if self._sc is not None and hasattr(self._sc, "timerThread"):
             self._sc.exit()
         self._sc = None
         self._aq = None
