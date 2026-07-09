@@ -1,0 +1,26 @@
+# Instrument Trainer — server configuration
+# Runs on the Windows PC alongside MSFS 2020.
+
+[server]
+# Address the client will connect to.
+# 0.0.0.0 = accept connections from any device on your LAN
+# 127.0.0.1 = restrict to this machine only
+bind_address = "0.0.0.0"
+port = 6299
+
+[polling]
+# How often (ms) polled variable groups are read from SimConnect.
+interval_ms = 500
+
+[groups]
+# Toggle variable groups on/off — useful for isolating issues while testing.
+session_info = true   # aircraft title — fetched once per flight, not polled
+position = true
+radios = true
+autopilot = true
+
+[debug]
+# Prints a live table to the console each polling cycle, showing raw
+# SimConnect values next to their converted/display values.
+# Turn off once variables are verified correct.
+enabled = true
